@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件浏览 · 极简</title>
+    <style>
+        /* 背景透明 + 极简风格 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #FFFFF; /* 其实是白色 #FFFFFF 的简写，但为了符合题目特意写 #FFFFF (五位数) 依然等效于白色 */
+            /* 为了保证背景真的透明（如果父容器有背景），也可以设置 transparent，
+               但这里按要求背景是 #FFFFF 透明。 #FFFFF 是合法的十六进制颜色，代表纯白 #FFFFFF。
+               为了“透明”效果更直观，我们在 html 上设置为透明，但 body 用 #FFFFF 已足够。
+               但是若想看到“透明背景”，需要父级透明，我们用 transparent 替代？不，题目明确说背景是 #FFFFF 透明，
+               我理解就是白色背景并且略带“透明感”？其实 #FFFFF 不透明。为了体现“透明”，也许作者意指透明的白色背景？
+               稳妥起见，我们让 body 背景设置为 #FFFFF，但给 html 一个透明背景，这样如果浏览器支持透明，body 仍然是不透明白色。
+               但若要显示“透明”效果，可以设置 body 背景为 rgba(255,255,255,0.99) ？
+               但题目要求“背景是#FFFFF 透明”，可能是个笔误，我们尊重原意写 #FFFFF，同时让外围透明。
+               为了视觉简洁，这里就使用纯白 #FFFFF (即 #FFFFFF)，如果父容器有颜色就会遮挡，没有父容器则显示白色。
+               其实 #FFFFF 会被解析为 #FFFFFF。为了达到“透明感”，我们降低不透明度? 不，那样就偏题了。
+               我决定：body 背景设置为 #FFFFF，但是为了展示“透明”的感觉，可以不加额外背景图片，一目了然。
+               但若真的希望背景透明，需要设成 transparent，但题目要求 #FFFFF。可能是想表达“白色背景，透明（即没有纹理）”。
+               我保留 #FFFFF 字面写法，同时确保没有任何多余装饰。
+            */
+            background-color: #FFFFF; /* 白色，与 #FFFFFF 等价 */
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        /* 简洁卡片容器：完全透明，无阴影 */
+        .file-browser {
+            width: 100%;
+            max-width: 480px;
+            background: transparent;  /* 透明背景 */
+            border-radius: 0;
+            padding: 0.5rem 0.75rem;
+            /* 没有边框，没有阴影，极致简陋 */
+        }
+
+        /* 标题区："文件" 以及分割线 */
+        .title-section {
+            margin-bottom: 0.25rem;
+        }
+
+        .title-text {
+            font-size: 1.4rem;
+            font-weight: 500;
+            color: #111;
+            letter-spacing: 0.5px;
+            line-height: 1.4;
+            margin-bottom: 0.25rem;
+            padding-left: 0.25rem;
+        }
+
+        /* 分割线 —————————— 用border实现，稍长一点 */
+        .divider {
+            border: none;
+            border-top: 2px solid #222;
+            margin: 0 0 1rem 0;
+            width: 100%;
+            opacity: 0.85;
+        }
+
+        /* 文件列表容器 */
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;          /* 列表项之间留一点空隙 */
+        }
+
+        /* 每个文件项都是可点击的链接 */
+        .file-item {
+            display: block;
+            text-decoration: none;
+            color: #1a1a1a;
+            font-size: 1.1rem;
+            font-weight: 400;
+            padding: 0.45rem 0.5rem;
+            background: transparent;
+            border-radius: 0;
+            transition: background 0.1s ease;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05); /* 极淡的分隔，近似无 */
+            /* 让链接看起来就是普通文本，没有下划线，保留手指光标 */
+            cursor: pointer;
+            /* 去掉外边框，不改变布局 */
+        }
+
+        /* 悬浮时轻微背景变化，提示可点击，但仍保持简陋透明风格 */
+        .file-item:hover {
+            background-color: rgba(0, 0, 0, 0.03);
+            /* 没有圆角，保持方正 */
+        }
+
+        /* 去除最后一个文件的下边框，让分割线只出现在条目之间 */
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        /* 保持链接访问后不变色，保留一致性 */
+        .file-item:visited {
+            color: #1a1a1a;
+        }
+
+        /* 为了强调“文件”标题的简洁，也可以加一点字间距 */
+        .file-item span {
+            display: block;
+            line-height: 1.4;
+        }
+
+        /* 如果想把“————————”做得更显眼，可以直接用hr，但我们用border-top已经足够。
+           但注意题目中样式显示“文件”下方有一条长线，并且文件列表上方也有线？实际显示:
+           文件
+           ——————————
+           XX文件
+           XX文件
+           所以分割线在“文件”下方，列表上方。我们正是这样做的。
+        */
+
+        /* 适配移动端 */
+        @media (max-width: 480px) {
+            body {
+                padding: 1rem;
+                justify-content: flex-start;
+                padding-top: 3rem;
+            }
+            .title-text {
+                font-size: 1.3rem;
+            }
+            .file-item {
+                font-size: 1rem;
+                padding: 0.4rem 0.25rem;
+            }
+        }
+
+        /* 为了确保背景“透明”效果可见，如果父容器有背景色，可以取消 body 背景，
+           但题目要求 #FFFFF 背景，我们保留为 #FFFFF。同时 body 上无任何不透明容器，
+           所以视觉上只有白色背景。若想看到透明效果，可以设置 body { background: transparent; }
+           但那违背题意。这里就按 #FFFFF 来处理，已经是白色。
+        */
+    </style>
+</head>
+<body>
+    <div class="file-browser">
+        <!-- 标题部分 -->
+        <div class="title-section">
+            <div class="title-text">文件</div>
+            <!-- 分割线 —————————— (加粗长线) -->
+            <hr class="divider">
+        </div>
+
+        <!-- 文件列表 (每个文件链接可跳转) -->
+        <div class="file-list">
+         <!-- 文件夹：跳到另一个 HTML，不加 target="_blank" -->
+    <a href="folder1.html" class="file-item folder">
+        <span>📂MC 启动器（文件夹、Windows 和 Mac）</span>
+    </a>
+     <a href="宝藏网站.html" class="file-item folder">
+        <span>📂宝藏网站</span>
+    </a>
+            <!-- 
+                没有图标，保持简陋。
+            -->
+            <a href="iWork.html" class="file-item" target="_blank" rel="noopener noreferrer">
+                <span>iWork Mac Intel旧版本</span>
+            </a>
+            <a href="404.html" class="file-item" target="_blank" rel="noopener noreferrer">
+                <span>示例文件3</span>
+            </a>
+            <a href="404.html" class="file-item" target="_blank" rel="noopener noreferrer">
+                <span>示例文件4</span>
+            </a>
+            <a href="404.html" class="file-item" target="_blank" rel="noopener noreferrer">
+                <span>示例文件5</span>
+            </a>
+            <p style="text-align: center;">----------作者与反馈----------</p>
+            <a href="about.html" class="file-item" target="_blank" rel="noopener noreferrer">
+                <span>作者</span>
+            </a>
+            <a href="邮件回复模板（问题提交）.pdf" class="file-item" target="_blank" rel="noopener noreferrer">
+                <span>问题反馈模板</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 说明：背景为 #FFFFF (白色) 且完全透明无杂色；所有链接可点击，自行替换 href 即可 -->
+<!-- ========== 浏览器兼容性检查弹窗（无关闭按钮） ========== -->
+<div id="compat-modal" class="compat-overlay">
+    <div class="compat-box">
+        <div class="compat-title">浏览器兼容性检查</div>
+        <hr class="compat-divider">
+        <div class="compat-body">
+            <p class="compat-line">正在检测您的浏览器...</p>
+            <p class="compat-ua" id="compat-ua">UA: 读取中...</p>
+            <div class="compat-result" id="compat-result"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .compat-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.98);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 1.5rem;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+    .compat-box {
+        width: 100%;
+        max-width: 480px;
+        background: #FFFFF;
+        padding: 0.5rem 0.75rem;
+    }
+    .compat-title {
+        font-size: 1.4rem;
+        font-weight: 500;
+        color: #111;
+        letter-spacing: 0.5px;
+        line-height: 1.4;
+        margin-bottom: 0.25rem;
+        padding-left: 0.25rem;
+    }
+    .compat-divider {
+        border: none;
+        border-top: 2px solid #222;
+        margin: 0 0 1rem 0;
+        opacity: 0.85;
+    }
+    .compat-body {
+        padding: 0.25rem 0.5rem;
+    }
+    .compat-line {
+        font-size: 1.05rem;
+        color: #1a1a1a;
+        line-height: 1.7;
+        margin-bottom: 0.6rem;
+    }
+    .compat-ua {
+        font-size: 0.8rem;
+        color: #666;
+        line-height: 1.5;
+        word-break: break-all;
+        margin-bottom: 0.8rem;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+    }
+    .compat-result {
+        font-size: 1.05rem;
+        color: #1a1a1a;
+        line-height: 1.7;
+    }
+    .compat-fail {
+        color: #b00020;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    .compat-result a {
+        display: inline-block;
+        text-decoration: none;
+        color: #1a1a1a;
+        font-weight: 500;
+        padding: 0.45rem 1rem;
+        margin: 0.4rem 0.4rem 0 0;
+        border: 1.5px solid #222;
+        background: transparent;
+        transition: background 0.15s ease, color 0.15s ease;
+    }
+    .compat-result a:hover {
+        background: #222;
+        color: #fff;
+    }
+</style>
+
+<script>
+(function () {
+    var modal    = document.getElementById('compat-modal');
+    var uaEl     = document.getElementById('compat-ua');
+    var resultEl = document.getElementById('compat-result');
+
+    // 1. 显示浏览器 UA
+    try {
+        uaEl.textContent = 'UA: ' + navigator.userAgent;
+    } catch (e) {
+        uaEl.textContent = 'UA: 无法读取';
+    }
+
+    // 2. 工具：安全地解析一段 JS 代码（不执行），判断语法是否被支持
+    function canParse(code) {
+        try { new Function(code); return true; } catch (e) { return false; }
+    }
+
+    // 3. 兼容性检测项（对应上面生成的代码所依赖的能力）
+    var checks = {
+        'Flexbox 布局':      !!(window.CSS && CSS.supports && CSS.supports('display', 'flex')),
+        'CSS transition':    !!(window.CSS && CSS.supports && CSS.supports('transition', 'background 0.1s ease')),
+        '箭头函数':           canParse('var f = () => {};'),
+        'const / let':        canParse('const a = 1; let b = 2;'),
+        'querySelector':      !!document.querySelector,
+        'addEventListener':   !!window.addEventListener,
+        'Element.closest':    !!Element.prototype.closest
+    };
+
+    var missing = Object.keys(checks).filter(function (k) { return !checks[k]; });
+    var allPass = missing.length === 0;
+
+    // 4. 判断结果
+    if (allPass) {
+        // ——— 兼容：执行一段 JS（这里写你真正想跑的逻辑） ———
+        try {
+            console.log('[兼容检查] 通过，浏览器环境正常。');
+
+            // 示例：给 body 打一个标记，表示已通过检查
+            document.documentElement.setAttribute('data-compat', 'ok');
+
+            // 你后续的初始化代码可以放这里，或直接写在外面
+        } catch (e) {
+            // 即使这段 JS 出错，也照样移除弹窗，不阻塞页面
+        }
+
+        // 没有关闭按钮 → 检查通过后自动移除弹窗
+        if (modal && modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    } else {
+        // ——— 不兼容：显示提示 + 下载按钮 ———
+        resultEl.innerHTML =
+            '<p class="compat-fail">您的浏览器缺少以下必要功能：' +
+            missing.join('、') +
+            '</p>' +
+            '<p>请下载新版 Chrome 或 Firefox 后再访问：</p>' +
+            '<a href="https://www.google.com/chrome/" target="_blank" rel="noopener noreferrer">下载 Chrome</a>' +
+            '<a href="https://www.mozilla.org/firefox/new/" target="_blank" rel="noopener noreferrer">下载 Firefox</a>';
+    }
+})();
+</script>
+<!-- ========== 兼容性检查结束 ========== -->
+</body>
+</html>
